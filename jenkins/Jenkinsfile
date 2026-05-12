@@ -1,0 +1,33 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "automation-platform"
+        IMAGE_TAG = "v4"
+    }
+
+    stages {
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG -f docker/Dockerfile .'
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                helm upgrade automation-platform helm/automation-platform-chart \
+                --set image.repository=$IMAGE_NAME \
+                --set image.tag=$IMAGE_TAG
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh 'kubectl get pods'
+            }
+        }
+    }
+}

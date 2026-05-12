@@ -21,7 +21,13 @@ spec:
     spec:
       containers:
       - name: automation-platform-container
-        image: automation-platform:v1
+        image: automation-platform:v3
+        envFrom:
+          - configMapRef:
+              name: automation-platform-config
+
+          - secretRef:
+              name: automation-platform-secret
 
         ports:
         - containerPort: 8000

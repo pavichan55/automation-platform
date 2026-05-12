@@ -10,7 +10,8 @@ def home():
     return {
         "message": "Automation Platform Running",
         "status": "success",
-        "environment": os.getenv("ENVIRONMENT", "default")
+        "environment": os.getenv("ENVIRONMENT", "default"),
+        "api_key": os.getenv("API_KEY", "not-set")
     }
 
 @app.get("/health")
