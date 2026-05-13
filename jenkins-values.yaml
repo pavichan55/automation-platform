@@ -1,0 +1,16 @@
+controller:
+  image:
+    repository: custom-jenkins
+    tag: v1
+    pullPolicy: Never
+
+  serviceType: NodePort
+
+  volumes:
+    - name: docker-sock
+      hostPath:
+        path: /var/run/docker.sock
+
+  volumeMounts:
+    - name: docker-sock
+      mountPath: /var/run/docker.sock
