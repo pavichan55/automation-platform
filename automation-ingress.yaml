@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: automation-ingress
+
+spec:
+  ingressClassName: nginx
+
+  rules:
+    - host: automation.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: automation-platform-automation-platform-chart
+                port:
+                  number: 80

@@ -32,16 +32,6 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
-            steps {
-                sh '''
-                helm upgrade --install automation-platform helm/automation-platform-chart \
-                --set image.repository=$DOCKER_IMAGE \
-                --set image.tag=$IMAGE_TAG
-                '''
-            }
-        }
-
         stage('Verify Deployment') {
             steps {
                 sh 'kubectl get pods'
