@@ -4,7 +4,7 @@ pipeline {
     }
 
     environment {
-        IMAGE_TAG = "v4"
+        IMAGE_TAG = "v${BUILD_NUMBER}"
         DOCKER_IMAGE = "pavichan/automation-platform"
     }
 
