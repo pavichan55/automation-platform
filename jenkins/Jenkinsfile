@@ -16,15 +16,15 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
-            steps {
-                sh '''
-                helm upgrade automation-platform helm/automation-platform-chart \
-                --set image.repository=$IMAGE_NAME \
-                --set image.tag=$IMAGE_TAG
-                '''
-            }
+    stage('Deploy to Kubernetes') {
+        steps {
+            sh '''
+            helm upgrade --install automation-platform helm/automation-platform-chart \
+            --set image.repository=$IMAGE_NAME \
+            --set image.tag=$IMAGE_TAG
+            '''
         }
+    }
 
         stage('Verify Deployment') {
             steps {
