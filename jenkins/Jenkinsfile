@@ -4,27 +4,43 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = "automation-platform"
         IMAGE_TAG = "v4"
+        DOCKER_IMAGE = "pavichan/automation-platform"
     }
 
     stages {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG -f docker/Dockerfile .'
+                sh 'docker build -t $DOCKER_IMAGE:$IMAGE_TAG -f docker/Dockerfile .'
             }
         }
 
-    stage('Deploy to Kubernetes') {
-        steps {
-            sh '''
-            helm upgrade --install automation-platform helm/automation-platform-chart \
-            --set image.repository=$IMAGE_NAME \
-            --set image.tag=$IMAGE_TAG
-            '''
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+
+                    sh '''
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    docker push $DOCKER_IMAGE:$IMAGE_TAG
+                    '''
+                }
+            }
         }
-    }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                helm upgrade --install automation-platform helm/automation-platform-chart \
+                --set image.repository=$DOCKER_IMAGE \
+                --set image.tag=$IMAGE_TAG
+                '''
+            }
+        }
 
         stage('Verify Deployment') {
             steps {
