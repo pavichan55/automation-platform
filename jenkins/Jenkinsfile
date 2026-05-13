@@ -34,16 +34,26 @@ pipeline {
 
         stage('Update Helm Chart') {
             steps {
-                sh '''
-                sed -i "s/tag:.*/tag: ${IMAGE_TAG}/" helm/automation-platform-chart/values.yaml
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'GIT_USER',
+                    passwordVariable: 'GIT_PASS'
+                )]) {
 
-                git config user.email "jenkins@local"
-                git config user.name "jenkins"
+                    sh '''
+                    sed -i "s/tag:.*/tag: ${IMAGE_TAG}/" helm/automation-platform-chart/values.yaml
 
-                git add helm/automation-platform-chart/values.yaml
-                git commit -m "Update image tag to ${IMAGE_TAG}"
-                git push origin main
-                '''
+                    git config user.email "jenkins@local"
+                    git config user.name "jenkins"
+
+                    git checkout main
+
+                    git add helm/automation-platform-chart/values.yaml
+                    git commit -m "Update image tag to ${IMAGE_TAG}" || true
+
+                    git push https://${GIT_USER}:${GIT_PASS}@github.com/pavichan55/automation-platform.git main
+                    '''
+                }
             }
         }
 
