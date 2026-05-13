@@ -32,6 +32,21 @@ pipeline {
             }
         }
 
+        stage('Update Helm Chart') {
+            steps {
+                sh '''
+                sed -i "s/tag:.*/tag: ${IMAGE_TAG}/" helm/automation-platform-chart/values.yaml
+
+                git config user.email "jenkins@local"
+                git config user.name "jenkins"
+
+                git add helm/automation-platform-chart/values.yaml
+                git commit -m "Update image tag to ${IMAGE_TAG}"
+                git push origin main
+                '''
+            }
+        }
+
         stage('Verify Deployment') {
             steps {
                 sh 'kubectl get pods'
