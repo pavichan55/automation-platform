@@ -19,7 +19,7 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
+                    credentialsId: 'github-creds',
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
@@ -32,30 +32,30 @@ pipeline {
             }
         }
 
-        stage('Update Helm Chart') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'GIT_USER',
-                    passwordVariable: 'GIT_PASS'
-                )]) {
+    stage('Update Helm Chart') {
+        steps {
+            withCredentials([usernamePassword(
+                credentialsId: 'github-creds',
+                usernameVariable: 'GIT_USER',
+                passwordVariable: 'GIT_PASS'
+            )]) {
 
-                    sh '''
-                    sed -i "s/tag:.*/tag: ${IMAGE_TAG}/" helm/automation-platform-chart/values.yaml
+                sh '''
+                git checkout main
 
-                    git config user.email "jenkins@local"
-                    git config user.name "jenkins"
+                sed -i "s/tag:.*/tag: ${IMAGE_TAG}/" helm/automation-platform-chart/values.yaml
 
-                    git checkout main
+                git config user.email "jenkins@local"
+                git config user.name "jenkins"
 
-                    git add helm/automation-platform-chart/values.yaml
-                    git commit -m "Update image tag to ${IMAGE_TAG}" || true
+                git add helm/automation-platform-chart/values.yaml
+                git commit -m "Update image tag to ${IMAGE_TAG}" || true
 
-                    git push https://${GIT_USER}:${GIT_PASS}@github.com/pavichan55/automation-platform.git main
-                    '''
-                }
+                git push https://${GIT_USER}:${GIT_PASS}@github.com/pavichan55/automation-platform.git main
+                '''
             }
         }
+    }
 
         stage('Verify Deployment') {
             steps {
