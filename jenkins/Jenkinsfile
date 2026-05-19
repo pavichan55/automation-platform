@@ -19,7 +19,7 @@ pipeline {
         stage('Trivy Scan') {
             steps {
                 sh '''
-                trivy image pavichan/automation-platform:${IMAGE_TAG}
+                trivy image --exit-code 1 --severity CRITICAL,HIGH $DOCKER_IMAGE:$IMAGE_TAG
                 '''
             }
         }
