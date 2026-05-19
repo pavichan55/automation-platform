@@ -16,6 +16,14 @@ pipeline {
             }
         }
 
+        stage('Trivy Scan') {
+            steps {
+                sh '''
+                trivy image pavichan/automation-platform:${IMAGE_TAG}
+                '''
+            }
+        }
+
         stage('Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(
