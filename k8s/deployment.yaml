@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: automation-platform-container
-        image: automation-platform:v3
+        image: pavichan/automation-platform:v20
         envFrom:
           - configMapRef:
               name: automation-platform-config

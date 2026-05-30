@@ -1,75 +1,136 @@
+// pipeline {
+//     agent {
+//         label 'built-in'
+//     }
+
+//     environment {
+//         IMAGE_TAG = "v${BUILD_NUMBER}"
+//         DOCKER_IMAGE = "pavichan/automation-platform"
+//     }
+
+//     stages {
+
+//         stage('Build Docker Image') {
+//             steps {
+//                 sh 'docker build -t $DOCKER_IMAGE:$IMAGE_TAG -f docker/Dockerfile .'
+//             }
+//         }
+
+//         // stage('Trivy Scan') {
+//         //     steps {
+//         //         sh '''
+//         //         trivy image --exit-code 1 --severity CRITICAL,HIGH $DOCKER_IMAGE:$IMAGE_TAG
+//         //         '''
+//         //     }
+//         // }
+
+//         stage('Push Docker Image') {
+//             steps {
+//                 withCredentials([usernamePassword(
+//                     credentialsId: 'dockerhub-creds',
+//                     usernameVariable: 'DOCKER_USER',
+//                     passwordVariable: 'DOCKER_PASS'
+//                 )]) {
+
+//                     sh '''
+//                     echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+//                     docker push $DOCKER_IMAGE:$IMAGE_TAG
+//                     '''
+//                 }
+//             }
+//         }
+
+//     stage('Update Helm Chart') {
+//         steps {
+//             withCredentials([usernamePassword(
+//                 credentialsId: 'github-creds',
+//                 usernameVariable: 'GIT_USER',
+//                 passwordVariable: 'GIT_PASS'
+//             )]) {
+
+//                 sh '''
+//                 git checkout main
+
+//                 git pull origin main --rebase
+
+//                 sed -i "s/tag:.*/tag: ${IMAGE_TAG}/" helm/automation-platform-chart/values.yaml
+
+//                 git config user.email "jenkins@local"
+//                 git config user.name "jenkins"
+
+//                 git add helm/automation-platform-chart/values.yaml
+//                 git commit -m "Update image tag to ${IMAGE_TAG}" || true
+
+//                 git push https://${GIT_USER}:${GIT_PASS}@github.com/pavichan55/automation-platform.git main
+//                 '''
+//             }
+//         }
+//     }
+
+//         stage('Verify Deployment') {
+//             steps {
+//                 sh 'kubectl get pods'
+//             }
+//         }
+//     }
+// }
+
 pipeline {
     agent {
         label 'built-in'
     }
 
     environment {
-        IMAGE_TAG = "v${BUILD_NUMBER}"
-        DOCKER_IMAGE = "pavichan/automation-platform"
+        AWS_REGION      = "ap-south-1"
+        ECR_REGISTRY    = "251522454642.dkr.ecr.ap-south-1.amazonaws.com"
+        ECR_REPO        = "automation-platform"
+        IMAGE_TAG       = "v${BUILD_NUMBER}"
+        IMAGE_URI       = "${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}"
     }
 
     stages {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE:$IMAGE_TAG -f docker/Dockerfile .'
+                sh "docker build -t ${IMAGE_URI} -f docker/Dockerfile ."
             }
         }
 
-        // stage('Trivy Scan') {
-        //     steps {
-        //         sh '''
-        //         trivy image --exit-code 1 --severity CRITICAL,HIGH $DOCKER_IMAGE:$IMAGE_TAG
-        //         '''
-        //     }
-        // }
+        stage('Push to ECR') {
+            steps {
+                sh '''
+                aws ecr get-login-password --region ap-south-1 | \
+                docker login --username AWS --password-stdin 251522454642.dkr.ecr.ap-south-1.amazonaws.com
+                docker push ${IMAGE_URI}
+                '''
+            }
+        }
 
-        stage('Push Docker Image') {
+        stage('Update Helm Chart') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
+                    credentialsId: 'github-creds',
+                    usernameVariable: 'GIT_USER',
+                    passwordVariable: 'GIT_PASS'
                 )]) {
-
                     sh '''
-                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                    docker push $DOCKER_IMAGE:$IMAGE_TAG
+                    git checkout main
+                    git pull origin main --rebase
+                    sed -i "s|repository:.*|repository: ${ECR_REGISTRY}/${ECR_REPO}|" helm/automation-platform-chart/values.yaml
+                    sed -i "s/tag:.*/tag: ${IMAGE_TAG}/" helm/automation-platform-chart/values.yaml
+                    git config user.email "jenkins@local"
+                    git config user.name "jenkins"
+                    git add helm/automation-platform-chart/values.yaml
+                    git commit -m "Update image to ECR ${IMAGE_TAG}" || true
+                    git push https://${GIT_USER}:${GIT_PASS}@github.com/pavichan55/automation-platform.git main
                     '''
                 }
             }
         }
 
-    stage('Update Helm Chart') {
-        steps {
-            withCredentials([usernamePassword(
-                credentialsId: 'github-creds',
-                usernameVariable: 'GIT_USER',
-                passwordVariable: 'GIT_PASS'
-            )]) {
-
-                sh '''
-                git checkout main
-
-                git pull origin main --rebase
-
-                sed -i "s/tag:.*/tag: ${IMAGE_TAG}/" helm/automation-platform-chart/values.yaml
-
-                git config user.email "jenkins@local"
-                git config user.name "jenkins"
-
-                git add helm/automation-platform-chart/values.yaml
-                git commit -m "Update image tag to ${IMAGE_TAG}" || true
-
-                git push https://${GIT_USER}:${GIT_PASS}@github.com/pavichan55/automation-platform.git main
-                '''
-            }
-        }
-    }
-
         stage('Verify Deployment') {
             steps {
-                sh 'kubectl get pods'
+                sh 'kubectl rollout status deployment/automation-platform -n automation-platform --timeout=60s'
             }
         }
     }
