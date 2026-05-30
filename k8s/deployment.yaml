@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: automation-platform-container
-        image: pavichan/automation-platform:v20
+        image: 251522454642.dkr.ecr.ap-south-1.amazonaws.com/automation-platform:v21
         envFrom:
           - configMapRef:
               name: automation-platform-config
