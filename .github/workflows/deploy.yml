@@ -1,0 +1,22 @@
+name: Automation Platform CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  verify-runner:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify Runner
+        run: |
+          echo "GitHub Actions is working"
+          echo "Current Directory:"
+          pwd
+          echo "Repository Files:"
+          ls -lrt
