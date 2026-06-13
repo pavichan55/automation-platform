@@ -6,19 +6,32 @@ on:
       - main
 
 jobs:
-  verify-runner:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Validate AWS secrets
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
-      - name: Verify AWS Connection
+
+      - name: Login to ECR
         run: |
-          aws sts get-caller-identity
-          echo "AWS connected successfully"
+          aws ecr get-login-password --region ap-south-1 | \
+          docker login --username AWS \
+          --password-stdin 251522454642.dkr.ecr.ap-south-1.amazonaws.com
+
+      - name: Build Docker Image
+        run: |
+          docker build --platform linux/amd64 \
+            -t 251522454642.dkr.ecr.ap-south-1.amazonaws.com/automation-platform:${{ github.sha }} \
+            -f docker/Dockerfile .
+
+      - name: Push to ECR
+        run: |
+          docker push \
+            251522454642.dkr.ecr.ap-south-1.amazonaws.com/automation-platform:${{ github.sha }}
