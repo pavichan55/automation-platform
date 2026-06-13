@@ -8,15 +8,17 @@ on:
 jobs:
   verify-runner:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Verify Runner
+      - name: Validate AWS secrets
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+      - name: Verify AWS Connection
         run: |
-          echo "GitHub Actions is working"
-          echo "Current Directory:"
-          pwd
-          echo "Repository Files:"
-          ls -lrt
+          aws sts get-caller-identity
+          echo "AWS connected successfully"
